@@ -1,0 +1,401 @@
+import { LinuxTool } from '../types';
+
+export const LINUX_TOOL_CATEGORIES = [
+  { id: 'all', label: 'جميع الأدوات' },
+  { id: 'network', label: 'الشبكات والفحص' },
+  { id: 'web', label: 'اختبار الويب' },
+  { id: 'sysadmin', label: 'إدارة النظام والعمليات' },
+  { id: 'files', label: 'الملفات والنصوص' },
+  { id: 'security', label: 'الحماية والصلاحيات' },
+  { id: 'forensics', label: 'التحليل الجنائي وكلمات المرور' },
+] as const;
+
+export const LINUX_TOOLS: LinuxTool[] = [
+  {
+    id: 'netcat',
+    name: 'Netcat (nc)',
+    category: 'network',
+    summary: 'سكين سويسري للشبكات: فحص المنافذ، فتح مستمع TCP/UDP، ونقل الملفات عبر الشبكة.',
+    installCmd: 'sudo apt install netcat-traditional',
+    params: [
+      { key: 'host', label: 'عنوان الهدف (IP/Host)', defaultValue: '192.168.1.50', placeholder: '192.168.1.50' },
+      { key: 'port', label: 'المنفذ (Port)', defaultValue: '4444', placeholder: '4444' },
+      { key: 'file', label: 'اسم الملف', defaultValue: 'payload.tar.gz', placeholder: 'file.txt' },
+    ],
+    examples: [
+      { title: 'بدء مستمع TCP على منفذ محدد', description: 'الاستماع للاتصالات الواردة بدون حل أسماء DNS', template: 'nc -lvnp {port}' },
+      { title: 'فحص منفذ أو نطاق منافذ', description: 'التحقق السريع من فتح المنافذ دون إرسال بيانات', template: 'nc -zv -w 3 {host} 20-100' },
+      { title: 'استقبال ملف عبر الشبكة', description: 'الاستماع وتوجيه البيانات المستلمة مباشرة إلى ملف', template: 'nc -lvnp {port} > {file}' },
+      { title: 'إرسال ملف إلى جهاز آخر', description: 'إرسال الملف إلى الجهاز المستمع', template: 'nc -w 3 {host} {port} < {file}' },
+    ],
+  },
+  {
+    id: 'tcpdump',
+    name: 'tcpdump',
+    category: 'network',
+    summary: 'محلل حزم الشبكة من سطر الأوامر لالتقاط وتحليل حركة المرور لحظياً.',
+    installCmd: 'sudo apt install tcpdump',
+    params: [
+      { key: 'iface', label: 'واجهة الشبكة', defaultValue: 'eth0', placeholder: 'eth0' },
+      { key: 'host', label: 'عنوان IP المستهدف', defaultValue: '192.168.1.10', placeholder: '192.168.1.10' },
+      { key: 'port', label: 'المنفذ', defaultValue: '80', placeholder: '80' },
+    ],
+    examples: [
+      { title: 'التقاط الحزم على واجهة محددة', description: 'عرض الحزم مع عدم تحويل الأرقام إلى أسماء', template: 'tcpdump -i {iface} -nn', sudo: true },
+      { title: 'فلترة حسب عنوان IP ومنفذ', description: 'مراقبة الترافيك لجهاز ومنفذ محددين مع عرض النص', template: 'tcpdump -i {iface} -A host {host} and port {port}', sudo: true },
+      { title: 'حفظ الالتقاط في ملف PCAP', description: 'حفظ الحزم لفتحها لاحقاً في Wireshark', template: 'tcpdump -i {iface} -w capture.pcap', sudo: true },
+      { title: 'قراءة وتحليل ملف PCAP محفوظ', description: 'استعراض الحزم من ملف سابق بسرعة', template: 'tcpdump -r capture.pcap -nn' },
+    ],
+  },
+  {
+    id: 'masscan',
+    name: 'Masscan',
+    category: 'network',
+    summary: 'أسرع ماسح منافذ TCP للشبكات الكبيرة والنطاقات الواسعة بمعدل حزم مرتفع.',
+    installCmd: 'sudo apt install masscan',
+    params: [
+      { key: 'subnet', label: 'النطاق الشبكي (CIDR)', defaultValue: '10.0.0.0/24', placeholder: '10.0.0.0/24' },
+      { key: 'ports', label: 'المنافذ', defaultValue: '80,443,22,8080', placeholder: '0-65535' },
+      { key: 'rate', label: 'معدل الحزم/ثانية', defaultValue: '1000', placeholder: '1000' },
+    ],
+    examples: [
+      { title: 'فحص سريع لنطاق CIDR', description: 'فحص المنافذ الشائعة بمعدل محدد', template: 'masscan {subnet} -p{ports} --rate={rate}', sudo: true },
+      { title: 'فحص جميع منافذ TCP وحفظ JSON', description: 'تغطية كافة المنافذ وتصدير النتيجة لملف', template: 'masscan {subnet} -p0-65535 --rate={rate} -oJ results.json', sudo: true },
+    ],
+  },
+  {
+    id: 'arp-scan',
+    name: 'arp-scan',
+    category: 'network',
+    summary: 'اكتشاف جميع الأجهزة النشطة وعناوين MAC الخاصة بها في الشبكة المحلية LAN.',
+    installCmd: 'sudo apt install arp-scan',
+    params: [
+      { key: 'iface', label: 'واجهة الشبكة', defaultValue: 'eth0', placeholder: 'eth0' },
+      { key: 'subnet', label: 'النطاق المحلي', defaultValue: '192.168.1.0/24', placeholder: '192.168.1.0/24' },
+    ],
+    examples: [
+      { title: 'مسح الشبكة المحلية تلقائياً', description: 'كشف كافة الأجهزة المتصلة على الواجهة الافتراضية', template: 'arp-scan --localnet --interface={iface}', sudo: true },
+      { title: 'مسح نطاق فرعي محدد', description: 'إرسال طلبات ARP لنطاق محدد', template: 'arp-scan -I {iface} {subnet}', sudo: true },
+    ],
+  },
+  {
+    id: 'dig',
+    name: 'dig & whois',
+    category: 'network',
+    summary: 'الاستعلام المتقدم عن سجلات DNS (A, MX, TXT, NS) وبيانات تسجيل النطاقات.',
+    installCmd: 'sudo apt install dnsutils whois',
+    params: [
+      { key: 'domain', label: 'اسم النطاق (Domain)', defaultValue: 'example.com', placeholder: 'example.com' },
+      { key: 'dns', label: 'خادم DNS', defaultValue: '1.1.1.1', placeholder: '8.8.8.8' },
+    ],
+    examples: [
+      { title: 'جلب كافة السجلات الأساسية', description: 'استعلام A و MX و TXT للنطاق', template: 'dig @{dns} {domain} ANY +noall +answer' },
+      { title: 'اختبار نقل المنطقة (Zone Transfer)', description: 'محاولة جلب جميع سجلات النطاق من خادم الأسماء', template: 'dig axfr @{dns} {domain}' },
+      { title: 'معرفة معلومات المالك والخوادم', description: 'استعلام قاعدة بيانات WHOIS الرسمية', template: 'whois {domain}' },
+    ],
+  },
+  {
+    id: 'ss-ip',
+    name: 'ss & iproute2',
+    category: 'network',
+    summary: 'الأدوات الحديثة في لينكس لعرض الاتصالات المفتوحة وبطاقات الشبكة وجداول التوجيه.',
+    installCmd: 'sudo apt install iproute2',
+    params: [
+      { key: 'port', label: 'رقم المنفذ للتصفية', defaultValue: '80', placeholder: '80' },
+    ],
+    examples: [
+      { title: 'عرض جميع المنافذ المستمعة والعمليات', description: 'إظهار TCP/UDP المستمعة مع رقم العملية PID', template: 'ss -tulnp', sudo: true },
+      { title: 'عرض الاتصالات النشطة على منفذ محدد', description: 'تصفية الاتصالات حسب المنفذ', template: 'ss -tanp | grep :{port}' },
+      { title: 'عرض عناوين IP وواجهات الشبكة', description: 'عرض ملون ومختصر لعناوين البطاقات', template: 'ip -c -br addr show' },
+      { title: 'عرض جدول التوجيه (Routing Table)', description: 'معرفة البوابة الافتراضية ومسارات الشبكة', template: 'ip route show' },
+    ],
+  },
+  {
+    id: 'curl',
+    name: 'cURL',
+    category: 'network',
+    summary: 'إرسال طلبات HTTP/HTTPS وفحص الترويسات والـ APIs وتنزيل الملفات.',
+    installCmd: 'sudo apt install curl',
+    params: [
+      { key: 'url', label: 'الرابط (URL)', defaultValue: 'https://example.com/api', placeholder: 'https://target.com' },
+      { key: 'token', label: 'رمز Bearer (اختياري)', defaultValue: 'YOUR_TOKEN', placeholder: 'TOKEN' },
+    ],
+    examples: [
+      { title: 'عرض ترويسات الاستجابة فقط', description: 'فحص نوع الخادم وكود الحالة وإعادة التوجيه', template: 'curl -ILks {url}' },
+      { title: 'إرسال طلب POST بصيغة JSON', description: 'اختبار نقاط نهاية API مع توثيق Bearer', template: 'curl -X POST {url} -H "Content-Type: application/json" -H "Authorization: Bearer {token}" -d \'{"test": true}\'' },
+      { title: 'قياس زمن استجابة الموقع التفصيلي', description: 'تحليل وقت DNS والاتصال و TLS', template: 'curl -o /dev/null -s -w "DNS: %{time_namelookup}s\\nConnect: %{time_connect}s\\nTotal: %{time_total}s\\nHTTP: %{http_code}\\n" {url}' },
+    ],
+  },
+  {
+    id: 'gobuster',
+    name: 'Gobuster',
+    category: 'web',
+    summary: 'أداة سريعة بلغة Go لتخمين المجلدات المخفية والنطاقات الفرعية و Virtual Hosts.',
+    installCmd: 'sudo apt install gobuster',
+    params: [
+      { key: 'url', label: 'رابط الهدف', defaultValue: 'http://192.168.1.10', placeholder: 'http://target.local' },
+      { key: 'wordlist', label: 'مسار قائمة الكلمات', defaultValue: '/usr/share/wordlists/dirb/common.txt', placeholder: '/usr/share/wordlists/...' },
+      { key: 'threads', label: 'عدد الخيوط', defaultValue: '40', placeholder: '40' },
+    ],
+    examples: [
+      { title: 'تخمين المجلدات والملفات (dir)', description: 'البحث عن المسارات مع الامتدادات الشائعة', template: 'gobuster dir -u {url} -w {wordlist} -t {threads} -x php,txt,html,bak' },
+      { title: 'استثناء أكواد خطأ محددة', description: 'تجاهل الأكواد المكررة وعرض النتائج الصالحة فقط', template: 'gobuster dir -u {url} -w {wordlist} -b 404,403 -t {threads}' },
+      { title: 'تخمين النطاقات الفرعية (dns)', description: 'البحث عن Subdomains لنطاق معين', template: 'gobuster dns -d example.com -w {wordlist} -t {threads}' },
+    ],
+  },
+  {
+    id: 'ffuf',
+    name: 'ffuf (Fuzz Faster U Fool)',
+    category: 'web',
+    summary: 'أداة Fuzzing فائقة السرعة لاكتشاف المسارات والمعاملات المخفية والرؤوس.',
+    installCmd: 'sudo apt install ffuf',
+    params: [
+      { key: 'url', label: 'الرابط مع كلمة FUZZ', defaultValue: 'http://192.168.1.10/FUZZ', placeholder: 'http://target/FUZZ' },
+      { key: 'wordlist', label: 'قائمة الكلمات', defaultValue: '/usr/share/wordlists/dirbuster/directory-list-2.3-medium.txt', placeholder: 'wordlist.txt' },
+    ],
+    examples: [
+      { title: 'فحص المسارات وتصفية حجم الاستجابة', description: 'إظهار أكواد 200 و 301 و 403 وتجاهل الردود المتشابهة', template: 'ffuf -u {url} -w {wordlist} -mc 200,204,301,302,307,403 -c' },
+      { title: 'تخمين معاملات GET المخفية', description: 'اكتشاف معاملات مثل ?id= أو ?debug=', template: 'ffuf -u "http://target.local/page.php?FUZZ=1" -w {wordlist} -fs 0' },
+      { title: 'تخمين Virtual Hosts عبر ترويسة Host', description: 'اكتشاف مواقع داخلية مستضافة على نفس IP', template: 'ffuf -u http://target.local -H "Host: FUZZ.target.local" -w {wordlist} -ac' },
+    ],
+  },
+  {
+    id: 'nikto',
+    name: 'Nikto',
+    category: 'web',
+    summary: 'ماسح خوادم الويب لاكتشاف الملفات الخطرة والإعدادات الافتراضية والثغرات القديمة.',
+    installCmd: 'sudo apt install nikto',
+    params: [
+      { key: 'url', label: 'عنوان الموقع أو IP', defaultValue: 'http://192.168.1.10', placeholder: 'http://192.168.1.10' },
+      { key: 'port', label: 'المنفذ', defaultValue: '80', placeholder: '80' },
+    ],
+    examples: [
+      { title: 'فحص شامل لخادم الويب', description: 'تفعيل فحص الإعدادات والملفات الافتراضية', template: 'nikto -h {url} -p {port}' },
+      { title: 'فحص HTTPS مع حفظ التقرير HTML', description: 'تصدير تقرير مفصل لنتائج الفحص', template: 'nikto -h {url} -ssl -o nikto_report.html -Format htm' },
+    ],
+  },
+  {
+    id: 'sqlmap',
+    name: 'SQLMap',
+    category: 'web',
+    summary: 'أداة آلية متقدمة لاكتشاف واستغلال ثغرات حقن قواعد البيانات SQL Injection.',
+    installCmd: 'sudo apt install sqlmap',
+    params: [
+      { key: 'url', label: 'الرابط المصاب المحتمل', defaultValue: 'http://testphp.vulnweb.com/artists.php?artist=1', placeholder: 'http://target/item.php?id=1' },
+      { key: 'db', label: 'اسم قاعدة البيانات', defaultValue: 'acuart', placeholder: 'database_name' },
+    ],
+    examples: [
+      { title: 'فحص الرابط وسرد قواعد البيانات', description: 'كشف نوع قاعدة البيانات وأسمائها تلقائياً', template: 'sqlmap -u "{url}" --batch --dbs' },
+      { title: 'سرد الجداول داخل قاعدة بيانات محددة', description: 'عرض الجداول الموجودة في القاعدة المختارة', template: 'sqlmap -u "{url}" -D {db} --tables --batch' },
+      { title: 'فحص عبر ملف طلب محفوظ من Burp Suite', description: 'اختبار طلب POST أو ترويسات معقدة', template: 'sqlmap -r request.txt --level=3 --risk=2 --batch' },
+    ],
+  },
+  {
+    id: 'hydra',
+    name: 'THC-Hydra',
+    category: 'web',
+    summary: 'أداة اختبار قوة كلمات المرور للخدمات الشبكية (SSH, FTP, HTTP, RDP, SMB).',
+    installCmd: 'sudo apt install hydra',
+    params: [
+      { key: 'host', label: 'عنوان الهدف', defaultValue: '192.168.1.10', placeholder: '192.168.1.10' },
+      { key: 'user', label: 'اسم المستخدم', defaultValue: 'admin', placeholder: 'admin' },
+      { key: 'wordlist', label: 'قائمة كلمات المرور', defaultValue: '/usr/share/wordlists/rockyou.txt', placeholder: 'passwords.txt' },
+    ],
+    examples: [
+      { title: 'اختبار قوة كلمة مرور SSH', description: 'تجربة قائمة كلمات لمستخدم محدد مع 4 خيوط', template: 'hydra -l {user} -P {wordlist} -t 4 ssh://{host}' },
+      { title: 'اختبار نموذج تسجيل دخول HTTP POST', description: 'تمرير جسم الطلب ونص رسالة الفشل', template: 'hydra -l {user} -P {wordlist} {host} http-post-form "/login.php:user=^USER^&pass=^PASS^:Invalid"' },
+    ],
+  },
+  {
+    id: 'systemctl',
+    name: 'systemctl & journalctl',
+    category: 'sysadmin',
+    summary: 'إدارة خدمات النظام في Systemd ومراجعة السجلات التفصيلية للأخطاء والعمليات.',
+    installCmd: 'مدمج افتراضياً في توزيعات Systemd',
+    params: [
+      { key: 'service', label: 'اسم الخدمة', defaultValue: 'nginx', placeholder: 'nginx / ssh / docker' },
+    ],
+    examples: [
+      { title: 'عرض حالة خدمة معينة', description: 'معرفة إذا كانت الخدمة تعمل أو متوقفة مع آخر السجلات', template: 'systemctl status {service}' },
+      { title: 'إعادة تشغيل وتفعيل الخدمة عند الإقلاع', description: 'تطبيق التغييرات وضمان التشغيل التلقائي', template: 'systemctl restart {service} && systemctl enable {service}', sudo: true },
+      { title: 'مراقبة سجلات الخدمة لحظياً', description: 'متابعة السجلات الجديدة فور صدورها', template: 'journalctl -u {service} -f -n 50' },
+      { title: 'عرض الخدمات الفاشلة في النظام', description: 'تشخيص سريع للخدمات التي بها أخطاء', template: 'systemctl --failed' },
+    ],
+  },
+  {
+    id: 'process-tools',
+    name: 'ps / lsof / kill',
+    category: 'sysadmin',
+    summary: 'مراقبة العمليات الجارية، الملفات والمنافذ المفتوحة، وإنهاء العمليات المعلقة.',
+    installCmd: 'sudo apt install procps lsof',
+    params: [
+      { key: 'proc', label: 'اسم العملية أو المنفذ', defaultValue: 'python3', placeholder: 'python3 / 8080' },
+      { key: 'pid', label: 'معرّف العملية PID', defaultValue: '1234', placeholder: '1234' },
+    ],
+    examples: [
+      { title: 'البحث عن أكثر العمليات استهلاكاً للذاكرة', description: 'ترتيب العمليات تنازلياً حسب استهلاك RAM', template: 'ps aux --sort=-%mem | head -n 15' },
+      { title: 'معرفة العملية التي تستخدم منفذاً معيناً', description: 'تحديد البرنامج الذي يشغل منفذ الشبكة', template: 'lsof -i :{proc}', sudo: true },
+      { title: 'إنهاء عملية فوراً عبر PID', description: 'إرسال إشارة SIGKILL للعملية المعلقة', template: 'kill -9 {pid}' },
+    ],
+  },
+  {
+    id: 'tmux',
+    name: 'tmux',
+    category: 'sysadmin',
+    summary: 'مقسم طرفيات ذكي يحفظ الجلسات في الخلفية حتى بعد انقطاع اتصال SSH.',
+    installCmd: 'sudo apt install tmux',
+    params: [
+      { key: 'session', label: 'اسم الجلسة', defaultValue: 'pentest', placeholder: 'work' },
+    ],
+    examples: [
+      { title: 'إنشاء جلسة جديدة باسم محدد', description: 'تشغيل جلسة مستقلة لتشغيل الأوامر الطويلة', template: 'tmux new -s {session}' },
+      { title: 'العودة إلى جلسة سابقة', description: 'استعادة الجلسة بعد إعادة الاتصال بالخادم', template: 'tmux attach -t {session}' },
+      { title: 'عرض جميع الجلسات النشطة', description: 'سرد الجلسات المفتوحة حالياً', template: 'tmux ls' },
+    ],
+  },
+  {
+    id: 'rsync-tar',
+    name: 'rsync & tar',
+    category: 'sysadmin',
+    summary: 'نسخ احتياطي متزامن سريع عبر SSH وضغط وفك ضغط الأرشيفات في لينكس.',
+    installCmd: 'sudo apt install rsync tar',
+    params: [
+      { key: 'src', label: 'المجلد المصدر', defaultValue: '/var/www/html', placeholder: '/path/to/src' },
+      { key: 'dest', label: 'الوجهة أو الخادم', defaultValue: 'user@192.168.1.20:/backups/', placeholder: '/backup/' },
+    ],
+    examples: [
+      { title: 'مزامنة مجلد مع عرض التقدم والضغط', description: 'نقل الملفات المتغيرة فقط بكفاءة عالية', template: 'rsync -avz --progress {src} {dest}' },
+      { title: 'ضغط مجلد بصيغة tar.gz', description: 'أرشفة وضغط المجلد مع الحفاظ على الصلاحيات', template: 'tar -czvf backup.tar.gz {src}' },
+      { title: 'فك ضغط أرشيف tar.gz', description: 'استخراج المحتويات في المجلد الحالي', template: 'tar -xzvf backup.tar.gz' },
+    ],
+  },
+  {
+    id: 'grep-awk-sed',
+    name: 'grep / awk / sed',
+    category: 'files',
+    summary: 'ثلاثي معالجة النصوص والسجلات في لينكس للبحث، استخراج الأعمدة، والاستبدال.',
+    installCmd: 'مدمج افتراضياً في جميع توزيعات لينكس',
+    params: [
+      { key: 'pattern', label: 'كلمة أو نمط البحث', defaultValue: 'Failed password', placeholder: 'ERROR' },
+      { key: 'file', label: 'مسار الملف', defaultValue: '/var/log/auth.log', placeholder: 'access.log' },
+    ],
+    examples: [
+      { title: 'بحث متكرر في مجلد مع أرقام الأسطر', description: 'البحث داخل كل الملفات مع تجاهل حالة الأحرف', template: 'grep -rnwi "{pattern}" /var/log/' },
+      { title: 'استخراج أكثر عناوين IP تكراراً في السجل', description: 'تحليل محاولات الدخول الفاشلة وترتيبها', template: 'grep "{pattern}" {file} | awk \'{print $(NF-3)}\' | sort | uniq -c | sort -nr | head -n 10' },
+      { title: 'استبدال نص داخل ملف مباشرة', description: 'تعديل القيمة في كامل الملف باستخدام sed', template: 'sed -i \'s/OLD_TEXT/NEW_TEXT/g\' {file}' },
+    ],
+  },
+  {
+    id: 'find',
+    name: 'find',
+    category: 'files',
+    summary: 'البحث الدقيق عن الملفات حسب الاسم، الحجم، التاريخ، أو الصلاحيات الأمنية الخطرة (SUID).',
+    installCmd: 'مدمج افتراضياً في جميع توزيعات لينكس',
+    params: [
+      { key: 'path', label: 'مسار البحث', defaultValue: '/', placeholder: '/var/www' },
+      { key: 'name', label: 'الاسم أو الامتداد', defaultValue: '*.conf', placeholder: '*.py' },
+    ],
+    examples: [
+      { title: 'البحث عن ملفات SUID (تصعيد الصلاحيات)', description: 'اكتشاف الملفات التنفيذية بصلاحية root', template: 'find {path} -perm -4000 -type f 2>/dev/null' },
+      { title: 'البحث عن ملفات معدلة خلال آخر 24 ساعة', description: 'متابعة التعديلات المشبوهة على الخادم', template: 'find {path} -type f -mtime -1 2>/dev/null' },
+      { title: 'البحث حسب الامتداد وتجاهل الأخطاء', description: 'إيجاد ملفات الإعدادات أو الكود بسرعة', template: 'find {path} -type f -name "{name}" 2>/dev/null' },
+    ],
+  },
+  {
+    id: 'ssh-tunnel',
+    name: 'SSH & Tunneling',
+    category: 'security',
+    summary: 'الاتصال الآمن، تمرير المنافذ (Port Forwarding)، وإنشاء SOCKS Proxy عبر SSH.',
+    installCmd: 'sudo apt install openssh-client',
+    params: [
+      { key: 'user', label: 'اسم المستخدم', defaultValue: 'kali', placeholder: 'root' },
+      { key: 'host', label: 'عنوان الخادم', defaultValue: '192.168.1.50', placeholder: 'server_ip' },
+      { key: 'lport', label: 'المنفذ المحلي', defaultValue: '8080', placeholder: '8080' },
+      { key: 'rport', label: 'المنفذ البعيد', defaultValue: '80', placeholder: '3306' },
+    ],
+    examples: [
+      { title: 'توليد مفتاح SSH حديث (Ed25519)', description: 'إنشاء زوج مفاتيح آمن للدخول بدون كلمة مرور', template: 'ssh-keygen -t ed25519 -C "security-lab"' },
+      { title: 'Local Port Forwarding (-L)', description: 'جلب خدمة داخلية على الخادم إلى جهازك المحلي', template: 'ssh -N -L {lport}:127.0.0.1:{rport} {user}@{host}' },
+      { title: 'إنشاء SOCKS5 Proxy ديناميكي (-D)', description: 'توجيه أدواتك عبر الخادم البعيد باستخدام proxychains', template: 'ssh -N -D 1080 {user}@{host}' },
+    ],
+  },
+  {
+    id: 'ufw-iptables',
+    name: 'UFW & iptables',
+    category: 'security',
+    summary: 'إدارة جدار الحماية في لينكس، فتح وغلق المنافذ، ومنع عناوين IP المشبوهة.',
+    installCmd: 'sudo apt install ufw iptables',
+    params: [
+      { key: 'port', label: 'المنفذ', defaultValue: '22', placeholder: '443' },
+      { key: 'ip', label: 'عنوان IP', defaultValue: '192.168.1.100', placeholder: '1.2.3.4' },
+    ],
+    examples: [
+      { title: 'عرض حالة جدار الحماية UFW والقواعد', description: 'مراجعة المنافذ المسموحة والمحظورة مرقمة', template: 'ufw status numbered', sudo: true },
+      { title: 'السماح بمنفذ محدد وحظر IP', description: 'تطبيق قاعدة سماح وحظر فوري', template: 'ufw allow {port}/tcp && ufw deny from {ip}', sudo: true },
+      { title: 'عرض قواعد iptables الحالية', description: 'عرض جميع سلاسل الحماية بأرقام المنافذ', template: 'iptables -L -n -v --line-numbers', sudo: true },
+    ],
+  },
+  {
+    id: 'openssl',
+    name: 'OpenSSL',
+    category: 'security',
+    summary: 'فحص شهادات SSL/TLS، تشفير وفك تشفير الملفات، وتوليد شهادات موقعة ذاتياً.',
+    installCmd: 'sudo apt install openssl',
+    params: [
+      { key: 'domain', label: 'النطاق والمنفذ', defaultValue: 'example.com:443', placeholder: 'host:443' },
+      { key: 'file', label: 'اسم الملف', defaultValue: 'secret.txt', placeholder: 'secret.txt' },
+    ],
+    examples: [
+      { title: 'فحص شهادة TLS لخادم بعيد', description: 'عرض سلسلة الشهادات وتاريخ انتهائها', template: 'echo | openssl s_client -connect {domain} -servername example.com 2>/dev/null | openssl x509 -noout -dates -subject -issuer' },
+      { title: 'تشفير ملف بخوارزمية AES-256-CBC', description: 'حماية ملف بكلمة مرور ومعيار PBKDF2', template: 'openssl enc -aes-256-cbc -salt -pbkdf2 -in {file} -out {file}.enc' },
+      { title: 'توليد شهادة SSL ذاتية التوقيع للاختبار', description: 'إنشاء شهادة ومفتاح صالحين لمدة سنة', template: 'openssl req -x509 -newkey rsa:4096 -keyout key.pem -out cert.pem -days 365 -nodes' },
+    ],
+  },
+  {
+    id: 'john-hashcat',
+    name: 'John the Ripper & Hashcat',
+    category: 'forensics',
+    summary: 'فحص قوة كلمات المرور واستعادة الهاشات (MD5, SHA256, NTLM, ZIP, SSH Keys).',
+    installCmd: 'sudo apt install john hashcat',
+    params: [
+      { key: 'hashfile', label: 'ملف الهاشات', defaultValue: 'hashes.txt', placeholder: 'hashes.txt' },
+      { key: 'wordlist', label: 'قاموس الكلمات', defaultValue: '/usr/share/wordlists/rockyou.txt', placeholder: 'rockyou.txt' },
+      { key: 'mode', label: 'رقم نوع الهاش (Hashcat)', defaultValue: '0', placeholder: '0=MD5, 1000=NTLM, 1400=SHA256' },
+    ],
+    examples: [
+      { title: 'اختبار ملف هاشات عبر John', description: 'استخدام قاموس الكلمات مع عرض النتيجة', template: 'john --wordlist={wordlist} {hashfile} && john --show {hashfile}' },
+      { title: 'استخراج هاش ملف ZIP محمي بكلمة مرور', description: 'تحويل الملف المضغوط لصيغة قابلة للفحص', template: 'zip2john protected.zip > zip.hash && john --wordlist={wordlist} zip.hash' },
+      { title: 'تشغيل Hashcat على قائمة هاشات', description: 'وضع القاموس (-a 0) للهاش المحدد', template: 'hashcat -m {mode} -a 0 {hashfile} {wordlist}' },
+    ],
+  },
+  {
+    id: 'binwalk-exif',
+    name: 'binwalk / strings / exiftool',
+    category: 'forensics',
+    summary: 'أدوات التحليل الجنائي والهندسة العكسية لاستخراج الملفات المدمجة والبيانات الوصفية.',
+    installCmd: 'sudo apt install binwalk binutils libimage-exiftool-perl',
+    params: [
+      { key: 'target', label: 'الملف المستهدف', defaultValue: 'firmware.bin', placeholder: 'image.jpg / binary' },
+    ],
+    examples: [
+      { title: 'فحص واستخراج الملفات المدمجة (binwalk)', description: 'تفكيك الصور أو ملفات الفيرموير تلقائياً', template: 'binwalk -e {target}' },
+      { title: 'قراءة البيانات الوصفية Exif', description: 'عرض بيانات الكاميرا والموقع والبرمجيات داخل الملف', template: 'exiftool {target}' },
+      { title: 'استخراج النصوص المقروءة (strings)', description: 'البحث عن روابط أو كلمات سر داخل ملف تنفيذي', template: 'strings -n 6 {target} | grep -iE "http|pass|key|token"' },
+    ],
+  },
+  {
+    id: 'apt-pkg',
+    name: 'APT & System Cleanup',
+    category: 'sysadmin',
+    summary: 'تحديث حزم ديبيان وأوبونتو وكالي، البحث عن الأدوات، وتنظيف النظام بأمان.',
+    installCmd: 'مدمج افتراضياً في Debian / Ubuntu / Kali',
+    params: [
+      { key: 'pkg', label: 'اسم الحزمة', defaultValue: 'nmap', placeholder: 'nmap' },
+    ],
+    examples: [
+      { title: 'تحديث كامل للنظام وتنظيف الحزم الزائدة', description: 'تحديث القوائم وترقية الحزم وحذف غير المستخدمة', template: 'apt update && apt full-upgrade -y && apt autoremove -y', sudo: true },
+      { title: 'البحث عن حزمة ومعرفة تفاصيلها', description: 'التحقق من توفر الأداة وإصدارها في المستودعات', template: 'apt search {pkg} && apt show {pkg}' },
+      { title: 'تثبيت مجموعة أدوات كالي الأساسية', description: 'تثبيت الحزمة الافتراضية على Kali Linux', template: 'apt install -y kali-linux-default', sudo: true },
+    ],
+  },
+];
