@@ -2,6 +2,7 @@ export type ActiveSection =
   | 'nmap'
   | 'linux'
   | 'python'
+  | 'platforms'
   | 'crypto'
   | 'network'
   | 'vault';

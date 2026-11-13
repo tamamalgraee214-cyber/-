@@ -4,6 +4,7 @@ import {
   Code2,
   Download,
   KeyRound,
+  Layers,
   Menu,
   Moon,
   Network,
@@ -16,6 +17,8 @@ import { CryptoLab } from './components/CryptoLab';
 import { LinuxToolsExplorer } from './components/LinuxToolsExplorer';
 import { NetworkAndUtilsLab } from './components/NetworkAndUtilsLab';
 import { NmapBuilder } from './components/NmapBuilder';
+import { PlatformsLab } from './components/PlatformsLab';
+import { PackagerInitialPayload } from './components/CodePackager';
 import { PythonScriptsStudio } from './components/PythonScriptsStudio';
 import { SavedVault } from './components/SavedVault';
 import { ActiveSection, VaultItem } from './types';
@@ -66,6 +69,12 @@ const NAV_ITEMS: {
     icon: Code2,
   },
   {
+    id: 'platforms',
+    label: 'ويندوز (EXE) وأندرويد',
+    subtitle: 'تحويل EXE، تغليف لينكس، Termux و ADB',
+    icon: Layers,
+  },
+  {
     id: 'crypto',
     label: 'مختبر التشفير والهاش',
     subtitle: 'Base64, SHA, JWT, كلمات السر',
@@ -90,6 +99,7 @@ export default function App() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [isDark, setIsDark] = useState(true);
   const [toast, setToast] = useState<string | null>(null);
+  const [packagerPayload, setPackagerPayload] = useState<PackagerInitialPayload | null>(null);
 
   const [vaultItems, setVaultItems] = useState<VaultItem[]>(() => {
     try {
@@ -328,7 +338,21 @@ export default function App() {
             <LinuxToolsExplorer onSaveItem={handleSaveItem} savedContents={savedContents} />
           )}
           {activeSection === 'python' && (
-            <PythonScriptsStudio onSaveItem={handleSaveItem} savedContents={savedContents} />
+            <PythonScriptsStudio
+              onSaveItem={handleSaveItem}
+              savedContents={savedContents}
+              onSendToPackager={(payload) => {
+                setPackagerPayload(payload);
+                setActiveSection('platforms');
+              }}
+            />
+          )}
+          {activeSection === 'platforms' && (
+            <PlatformsLab
+              onSaveItem={handleSaveItem}
+              savedContents={savedContents}
+              initialCode={packagerPayload}
+            />
           )}
           {activeSection === 'crypto' && <CryptoLab />}
           {activeSection === 'network' && (

@@ -1,19 +1,26 @@
 import { useMemo, useState } from 'react';
-import { Code2, Search, Terminal } from 'lucide-react';
+import { Code2, Package, Search, Terminal } from 'lucide-react';
 import { PYTHON_CATEGORIES, PYTHON_SCRIPTS } from '../data/pythonScriptsData';
 import { PythonCategory, PythonScript, VaultItem } from '../types';
 import { CodeBlock } from './CodeBlock';
+import { PackagerInitialPayload } from './CodePackager';
 
 interface PythonScriptsStudioProps {
   onSaveItem: (item: Omit<VaultItem, 'id' | 'createdAt'>) => void;
   savedContents: Set<string>;
+  onSendToPackager?: (payload: PackagerInitialPayload) => void;
 }
 
-export function PythonScriptsStudio({ onSaveItem, savedContents }: PythonScriptsStudioProps) {
+export function PythonScriptsStudio({
+  onSaveItem,
+  savedContents,
+  onSendToPackager,
+}: PythonScriptsStudioProps) {
   const [category, setCategory] = useState<PythonCategory>('all');
   const [search, setSearch] = useState('');
   const [selectedId, setSelectedId] = useState<string>(PYTHON_SCRIPTS[0].id);
   const [paramState, setParamState] = useState<Record<string, Record<string, string>>>({});
+  const [buildTarget, setBuildTarget] = useState<'windows' | 'linux' | 'android'>('windows');
 
   const filteredScripts = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -49,6 +56,30 @@ export function PythonScriptsStudio({ onSaveItem, savedContents }: PythonScripts
     [activeScript, currentValues]
   );
 
+  const buildHelper = useMemo(() => {
+    const baseName = activeScript.filename.replace(/\.py$/, '');
+    const pipStep = activeScript.pipInstall ? `${activeScript.pipInstall}\n` : '';
+    if (buildTarget === 'windows') {
+      return {
+        filename: `build_${baseName}_exe.bat`,
+        label: `Windows .EXE Builder (${baseName}.exe)`,
+        code: `@echo off\n${pipStep}pip install pyinstaller\npyinstaller --onefile --console --name "${baseName}" "${activeScript.filename}"\necho Done! EXE saved in dist\\${baseName}.exe\npause`,
+      };
+    }
+    if (buildTarget === 'linux') {
+      return {
+        filename: `build_${baseName}_linux.sh`,
+        label: `Linux Binary / Executable (${baseName})`,
+        code: `#!/usr/bin/env bash\nset -e\n${pipStep}pip install pyinstaller\npyinstaller --onefile --name "${baseName}" "${activeScript.filename}"\nchmod +x "dist/${baseName}"\necho "Ready: ./dist/${baseName}"`,
+      };
+    }
+    return {
+      filename: `run_${baseName}_android.sh`,
+      label: `Android Termux Setup & Runner`,
+      code: `#!/data/data/com.termux/files/usr/bin/bash\npkg update -y && pkg install -y python\n${pipStep}python3 "${activeScript.filename}"`,
+    };
+  }, [activeScript, buildTarget]);
+
   const updateParam = (scriptId: string, key: string, value: string) => {
     setParamState((prev) => ({
       ...prev,
@@ -73,7 +104,7 @@ export function PythonScriptsStudio({ onSaveItem, savedContents }: PythonScripts
           استوديو أدوات وأكواد بايثون (Python 3)
         </h2>
         <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">
-          أكواد بايثون كاملة وجاهزة للتشغيل أو التحميل بصيغة <code className="font-mono text-emerald-500">.py</code> مع تخصيص المتغيرات مباشرة.
+          أكواد بايثون كاملة وجاهزة للتشغيل أو التحميل بصيغة <code className="font-mono text-emerald-500">.py</code>، مع سكربتات تحويل جاهزة لملف <code className="font-mono text-emerald-500">.exe</code> ولينكس وأندرويد.
         </p>
       </div>
 
@@ -127,7 +158,7 @@ export function PythonScriptsStudio({ onSaveItem, savedContents }: PythonScripts
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
           {/* Scripts Sidebar */}
-          <div className="lg:col-span-4 space-y-2 max-h-[720px] overflow-y-auto pl-1">
+          <div className="lg:col-span-4 space-y-2 max-h-[760px] overflow-y-auto pl-1">
             {filteredScripts.map((script) => {
               const active = activeScript.id === script.id;
               return (
@@ -236,6 +267,58 @@ export function PythonScriptsStudio({ onSaveItem, savedContents }: PythonScripts
               }
               isSaved={savedContents.has(generatedCode)}
             />
+
+            {/* Cross-Platform Export / Build Helper (.EXE / Linux / Android) */}
+            <div className="pt-4 border-t border-slate-200 dark:border-slate-800 space-y-3">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+                  تشغيل أو تحويل هذا السكربت إلى ملف تنفيذي حسب النظام:
+                </span>
+                <div className="flex flex-wrap items-center gap-2">
+                  {onSendToPackager && (
+                    <button
+                      type="button"
+                      onClick={() =>
+                        onSendToPackager({
+                          filename: activeScript.filename,
+                          code: generatedCode,
+                        })
+                      }
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-md border border-emerald-500/60 text-emerald-500 hover:bg-emerald-500/10 transition-colors whitespace-nowrap shrink-0 cursor-pointer"
+                    >
+                      <Package className="w-3.5 h-3.5" />
+                      <span>فتح في مغلّف الأكواد</span>
+                    </button>
+                  )}
+                  <div className="inline-flex items-center gap-1 p-1 rounded-lg bg-slate-100 dark:bg-slate-950 border border-slate-200 dark:border-slate-800">
+                    {[
+                      { id: 'windows', label: 'Windows (.exe)' },
+                      { id: 'linux', label: 'Linux Binary' },
+                      { id: 'android', label: 'Android (Termux)' },
+                    ].map((os) => (
+                      <button
+                        key={os.id}
+                        type="button"
+                        onClick={() => setBuildTarget(os.id as typeof buildTarget)}
+                        className={`px-2.5 py-1 text-xs font-semibold rounded-md transition-colors whitespace-nowrap shrink-0 cursor-pointer ${
+                          buildTarget === os.id
+                            ? 'bg-emerald-600 text-white'
+                            : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100'
+                        }`}
+                      >
+                        {os.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+              <CodeBlock
+                code={buildHelper.code}
+                label={buildHelper.label}
+                filename={buildHelper.filename}
+                compact
+              />
+            </div>
           </div>
         </div>
       )}
